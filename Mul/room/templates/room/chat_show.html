@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room - {{ room_name }}</title>
+</head>
+<body>
+    <h1> Room - {{ room_name }}</h1>
+
+    <div id="status">Connecting..</div>
+
+    <div id="chat_box"></div>
+
+    <input type="text" id="message-input" placeholder="Message"/>
+    <button onclick="sendMessage()">Pepe</button>
+
+    <script>
+        const roomName = '{{ room_name }}'
+        const protocol = window.location.protocol == 'https:' ? 'wss://' : 'ws://'
+        const wsUrl = protocol + window.location.host + '/ws/room/' + roomName + '/'
+
+        const chatBox = document.getElementById('chat_box')
+        const statusDiv = document.getElementById('status')
+        const input = document.getElementById('message-input')
+
+        const ws = new WebSocket(wsUrl)
+
+        ws.onopen = function() {
+            statusDiv.textContent = 'Connected'
+        }
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data)
+            if (data.message) {
+                const msgDiv = document.createElement('div');
+                msgDiv.textContent = (data.username || 'Pepe') + ':' + data.message;
+                chatBox.appendChild(msgDiv);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        };
+
+        ws.onclose = function() {
+            statusDiv.textContent = 'Disconnected'
+        };
+
+        function sendMessage() {
+            const text = input.value.trim();
+            if (text && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ message: text}));
+                input.value = '';
+            }
+        }
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
