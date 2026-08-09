@@ -13,43 +13,67 @@
     <div id="chat_box"></div>
 
     <input type="text" id="message-input" placeholder="Message"/>
+    <!-- the function call to send a message -->
     <button onclick="sendMessage()">Pepe</button>
     <script>
+        
+        // save the room name in a variable
         const roomName = '{{ room_name }}'
+        
+        // check the type of the connection, 
+        // if it is secure (https) use wss(the secure type for a websocket), 
+        // otherwise use ws
         const protocol = window.location.protocol == 'https:' ? 'wss://' : 'ws://'
+        
+        // making a full url adress
         const wsUrl = protocol + window.location.host + '/ws/room/' + roomName + '/'
-
+        
+        // get the links for the specific html elements
         const chatBox = document.getElementById('chat_box')
         const statusDiv = document.getElementById('status')
         const input = document.getElementById('message-input')
-
+        
+        // make a new websocket connection using the url
         const ws = new WebSocket(wsUrl)
-
+        
+        // event function, which is called when the connection is opened
         ws.onopen = function() {
             statusDiv.textContent = 'Connected'
         }
+        // event function, which is called when a message is received from the server
         ws.onmessage = function(event) {
+            // turn a json object from the server into a javascript object
+            console.log('RAW:', event.data)  
             const data = JSON.parse(event.data)
+            // check for the existing of the message
             if (data.message) {
+                // make a new div element for the message
                 const msgDiv = document.createElement('div');
-                msgDiv.textContent = (data.username || 'Pepe') + ':' + data.message;
+                // make a template for the message showing
+                msgDiv.textContent = data.username + ':' + data.message;
+                // add a new message to the chat box
                 chatBox.appendChild(msgDiv);
+                // just scroll the page down to the last message
                 chatBox.scrollTop = chatBox.scrollHeight;
             }
         };
-
+        // if websocket disconnected, show it on html page
         ws.onclose = function() {
             statusDiv.textContent = 'Disconnected'
         };
-
+        // function for, guess what? Right, for sending a message
         function sendMessage() {
+            // take a text from a text input, and delete spaces
             const text = input.value.trim();
+            // check for the text existing and websocket connection
             if (text && ws.readyState === WebSocket.OPEN) {
+                // turn the text into a json object and send it to the server
                 ws.send(JSON.stringify({ message: text}));
+                // clear the input after sending
                 input.value = '';
             }
         }
-
+        // listener for the keyboard, if Enter is pressed, call the sendMessage
         input.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 sendMessage();

@@ -5,6 +5,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
     # Method which is called when consumer establish websocket connection
     # async is pointing that this fucntion is a coroutine(a function which can pause and start again while remaining all info)
+        self.user = self.scope['user']
+
+        if not self.user.is_authenticated:
+            await self.close()
+            return
         
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         # self.scope is a dictionary which contains info about current websocket connection(like request in Django)
@@ -29,11 +34,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         # disconnect method is called automaticaly when websocket connection is closed(for example user close the window or quit the app)
         # 'close_code' is showing us the reason why connection was closed(like 404, or 1000 for normal disconnection)
-        
-        await self.channel_layer.group_discard(
-            self.group_name, self.channel_name
-        )
-        # the same as group_add function but for removing the channels from the group
+        if hasattr(self, 'group_name'):
+            await self.channel_layer.group_discard(
+                self.group_name, self.channel_name
+            )
+            # group_discard removes the channel from the group
+            # the same as group_add function but for removing the channels from the group
 
     
     async def receive(self, text_data):
@@ -44,15 +50,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # json.loads method is turning a JSON string into python dictionary
         # we need it cause websocket is able to process only strings and bytes
         
-        message = data['message']
+        message = (data.get('message') or '').strip()[:500]
         # data['message'] takes the value from the dictionary with 'message' key
+        if not message:
+            return
 
         await self.channel_layer.group_send(
             # group_send method sends the message to channels in group
             self.group_name,
             {
                 'type': 'chat_message',
+                'username': self.user.username,
                 'message': message,
+
             }
             # first arg - a group name, second arg - dictionary with the data,
             
@@ -68,6 +78,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             # self.send is sending the message back to this exact user(who called this method)
             # text_data=json.dumps turn python dictionary back to JSON to let websocket process it
+            'username': event['username'],
             'message': event['message'], 
             # a message which user will receive
         }))

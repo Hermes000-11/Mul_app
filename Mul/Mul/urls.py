@@ -23,4 +23,6 @@ urlpatterns = [
     path('room/', include('room.urls')),
     path('register/', views.registration, name='registration'),
     path('login/', views.login, name='login'),
+    path('logout/', views.logout, name='logout'),
+    path('chat/', views.chat_room, name='chat'),
 ]
