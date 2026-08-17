@@ -4,3 +4,5 @@ app_name = 'room'
 urlpatterns = [
     path('<str:room_name>/', views.room, name='room'),
 ]
+
+# nothing to explain tbh, but views.py process and render html template
